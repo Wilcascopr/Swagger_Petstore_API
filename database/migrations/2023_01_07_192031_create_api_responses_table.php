@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('response_apis', function (Blueprint $table) {
+        Schema::create('api_responses', function (Blueprint $table) {
             $table->id();
             $table->integer('code');
             $table->string('type');
@@ -29,6 +29,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('response_apis');
+        Schema::dropIfExists('api_responses');
     }
 };

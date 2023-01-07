@@ -3,6 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PetController;
+use App\Models\Category;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -16,3 +18,12 @@ use App\Http\Controllers\PetController;
 */
 
 Route::post('/pet', [PetController::class, 'addPet']);
+Route::put('/pet', [PetController::class, 'updatePet']);
+Route::get('/pet/findByStatus', [PetController::class, 'petsByStatus']);
+Route::get('/pet/{id}', [PetController::class, 'singlePet']);
+Route::post('/pet/{id}', [PetController::class, 'editPet']);
+Route::delete('/pet/{id}', [PetController::class, 'deletePet']);
+Route::get('/categories', function () {
+    $categories = Category::all()->pluck('id', 'name');
+    return response()->json($categories);
+});
