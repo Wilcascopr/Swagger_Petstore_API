@@ -13,10 +13,14 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('api_responses', function (Blueprint $table) {
+        Schema::create('pets', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('category_id')->constrained('categories');
+            $table->string('name');
+            $table->text('photo_urls');
+            $table->string('status');
             $table->timestamps();
-        });
+            });
     }
 
     /**
@@ -26,6 +30,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('api_responses');
+        Schema::dropIfExists('pets');
     }
 };
