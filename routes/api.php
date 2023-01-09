@@ -24,6 +24,6 @@ Route::get('/pet/{id}', [PetController::class, 'singlePet']);
 Route::post('/pet/{id}', [PetController::class, 'editPet']);
 Route::delete('/pet/{id}', [PetController::class, 'deletePet']);
 Route::get('/categories', function () {
-    $categories = Category::all()->pluck('id', 'name');
+    $categories = Category::all(['id', 'name'])->toArray();
     return response()->json($categories);
 });

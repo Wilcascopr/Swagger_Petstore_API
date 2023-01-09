@@ -37,13 +37,27 @@ class PetController extends Controller
         $category = Category::find($request->category);
         $pet = new Pet;
 
-        //checks if category id is a valid one, and if it is, stores the pet
+        //checks if category id is a valid one, and if it is, stores the pet.
 
         if ($category) {
-            $pet->name = $request->name;
-            $pet->category_id = $request->category;
-            $pet->photo_urls = json_encode($request->photoUrls);
-            $pet->status = $request->status;
+            // checks if the photo url is valid to add it to the url array.
+            $valid_photo_urls = [];
+            foreach($request->photoUrls as $url) {
+                if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                    continue;
+                }
+
+                $type = exif_imagetype($url);
+                
+                if ($type === false) {
+                    continue;
+                }
+                array_push($valid_photo_urls, $url);
+            }
+            $pet->name = strtolower(trim($request->name));
+            $pet->category_id = strtolower(trim($request->category));
+            $pet->photo_urls = json_encode($valid_photo_urls);
+            $pet->status = strtolower(trim($request->status));
             $pet->save();
         } else {
             $apiresponse = ApiResponse::where('code', 405 )->first();
@@ -55,15 +69,15 @@ class PetController extends Controller
         //loops trhough the tags array so the not existing tags can be stored
 
         foreach($request->tags as $tag) {
-            $tagModel = Tag::firstOrCreate(['name' => strtolower($tag)]);
+            $tagModel = Tag::firstOrCreate(['name' => strtolower(trim($tag))]);
             $pet->tags()->attach($tagModel);
         }
-    
+
         return response()->json([
             'id' => $pet->id,
             'name' => $pet->name,
             'category' => $pet->category_id,
-            'photo_urls' => json_decode($pet->photo_urls),
+            'photoUrls' => json_decode($pet->photo_urls),
             'tags' => $pet->tags->pluck('name'),
             'status' => $pet->status,
         ], 201);
@@ -106,14 +120,27 @@ class PetController extends Controller
         }
 
         if ($category) {
-            $pet->name = $request->name;
-            $pet->category_id = $request->category;
-            $pet->photo_urls = json_encode($request->photoUrls);
-            $pet->status = $request->status;
+            $valid_photo_urls = [];
+            foreach($request->photoUrls as $url) {
+                if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                    continue;
+                }
+
+                $type = exif_imagetype($url);
+                
+                if ($type === false) {
+                    continue;
+                }
+                array_push($valid_photo_urls, $url);
+            }
+            $pet->name = strtolower(trim($request->name));
+            $pet->category_id = strtolower(trim($request->category));
+            $pet->photo_urls = json_encode($valid_photo_urls);
+            $pet->status = strtolower(trim($request->status));
         } else {
             $apiresponse = ApiResponse::where('code', 405 )->first();
             return response()->json([
-                "message" =>  $apiresponse->message . " " . "Invalid Category"
+                "message" =>  $apiresponse->message . " " . "Invalid Category."
             ], 405);
         }
 
@@ -122,17 +149,19 @@ class PetController extends Controller
         $current_tags = $pet->tags->pluck('name');
         $current_tags = $current_tags->all();
 
-        $req_tags = array_map('strtolower', $request->tags);
+        $req_tags = array_map(function ($string) {
+            return strtolower(trim($string));
+        }, $request->tags);
 
         foreach($current_tags as $tag) {
-            $tagModel = Tag::where('name', strtolower($tag))->first();
+            $tagModel = Tag::where('name', strtolower(trim($tag)))->first();
             if (!in_array(strtolower($tag), $req_tags)) {
                 $pet->tags()->detach($tagModel);
             } 
         }
 
         foreach($req_tags as $tag) {
-            $tagModel = Tag::firstOrCreate(['name' => strtolower($tag)]);
+            $tagModel = Tag::firstOrCreate(['name' => strtolower(trim($tag))]);
             if (!in_array(strtolower($tag), $current_tags)) {
                 $pet->tags()->attach($tagModel);
             }
@@ -140,14 +169,7 @@ class PetController extends Controller
 
         $pet->save();
     
-        return response()->json([
-            'id' => $pet->id,
-            'name' => $pet->name,
-            'category' => $pet->category_id,
-            'photo_urls' => json_decode($pet->photo_urls),
-            'tags' => $pet->tags->pluck('name'),
-            'status' => $pet->status,
-        ], 201);
+        return response()->json(["message" => "Successful operation."], 200);
     
     }
 
@@ -172,7 +194,7 @@ class PetController extends Controller
                 'id' => $pet->id,
                 'name' => $pet->name,
                 'category' => $pet->category_id,
-                'photo_urls' => json_decode($pet->photo_urls),
+                'photoUrls' => json_decode($pet->photo_urls),
                 'tags' => $pet->tags->pluck('name'),
                 'status' => $pet->status,
             ], 200);
@@ -210,18 +232,26 @@ class PetController extends Controller
         if (!$is_valid_status) {
             $apiresponse = ApiResponse::where([ 'code' => 400, 'type' => 'status'])->first();
             return response()->json([
-                "message" =>  $apiresponse->message
+                "message" =>  $apiresponse->message . '.'
             ], 405);
         }
 
         $pets = Pet::whereIn('status', $status)->get();
+
+        // if there are no pets under any status means there are no pets in the database yet.
+
+        if (count($status) === 3 && count($pets) === 0) {
+            return response()->json([
+                "message" => "There are no pets added yet."
+            ], 200);
+        }
 
         // if there are no pets with this status, handle response
 
         if (count($pets) === 0) {
             $apiresponse = ApiResponse::where('code', 404)->first();
             return response()->json([
-                "message" =>  $apiresponse->message . ". No pets were found with this status"
+                "message" =>  $apiresponse->message . ". No pets were found with this status."
             ], 404);
         }
 
@@ -235,7 +265,7 @@ class PetController extends Controller
                 'id' => $pet->id,
                 'name' => $pet->name,
                 'category' => $pet->category_id,
-                'photo_urls' => json_decode($pet->photo_urls),
+                'photoUrls' => json_decode($pet->photo_urls),
                 'tags' => $pet->tags()->pluck('name'),
                 'status' => $pet->status,
             ]);
@@ -282,8 +312,8 @@ class PetController extends Controller
                 "message" =>  $apiresponse->message
             ], 404);
         }
-        if ($request->name) $pet->name = $request->name;
-        if ($request->status) $pet->status = $request->status;
+        if ($request->name) $pet->name = trim(strtolower($request->name));
+        if ($request->status) $pet->status = trim(strtolower($request->status));
 
         $pet->save();
 
@@ -291,7 +321,7 @@ class PetController extends Controller
             'id' => $pet->id,
             'name' => $pet->name,
             'category' => $pet->category_id,
-            'photo_urls' => json_decode($pet->photo_urls),
+            'photoUrls' => json_decode($pet->photo_urls),
             'tags' => $pet->tags->pluck('name'),
             'status' => $pet->status,
         ], 200);
@@ -311,6 +341,7 @@ class PetController extends Controller
         $pet = Pet::find($id);
 
         if ($pet) {
+            $pet->tags()->detach();
             $pet->delete();
             return response()->json(["message" => "Successful operation"], 200);
         } else {
