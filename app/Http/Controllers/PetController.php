@@ -47,7 +47,7 @@ class PetController extends Controller
                     continue;
                 }
 
-                $type = exif_imagetype($url);
+                $type = @exif_imagetype($url);
                 
                 if ($type === false) {
                     continue;
@@ -126,7 +126,7 @@ class PetController extends Controller
                     continue;
                 }
 
-                $type = exif_imagetype($url);
+                $type = @exif_imagetype($url);
                 
                 if ($type === false) {
                     continue;
